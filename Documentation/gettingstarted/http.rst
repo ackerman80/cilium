@@ -235,11 +235,12 @@ Step 4: Checking Current Access
 ===============================
 From the perspective of *deathstar* service providers only the empire ships should be able to request landing. But right now we don't have any rules enforced. So both *xwing* and *tiefighter* will be able to request landing. Lets test this:
 
-Arvinds-MacBook-Pro:v3 arvindsoni$ kubectl exec xwing-cc65988f5-7cvn8 -- curl -s -XPOST 10.109.254.198/v1/request-landing
-Ship landed
-Arvinds-MacBook-Pro:v3 arvindsoni$ kubectl exec  tiefighter-68c6cb4b4b-rxcb2  -- curl -s -XPOST 10.109.254.198/v1/request-landing
-Ship landed
-Arvinds-MacBook-Pro:v3 arvindsoni$ 
+.. parsed-literal::
+
+    $ kubectl exec xwing-cc65988f5-7cvn8 -- curl -s -XPOST 10.109.254.198/v1/request-landing
+    Ship landed
+    $ kubectl exec  tiefighter-68c6cb4b4b-rxcb2  -- curl -s -XPOST 10.109.254.198/v1/request-landing
+    Ship landed
 
 
 Step 5: Test L3/L4 Policy
