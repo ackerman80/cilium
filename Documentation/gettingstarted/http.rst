@@ -118,18 +118,18 @@ In our Star Wars inspired, simple example, there are three microservices applica
 
 .. image:: images/cilium_k8s_demo-150817.png
 
-The file ``demo.yaml`` contains a `Kubernetes Deployment <https://kubernetes.io/docs/concepts/workloads/controllers/deployment/>`_ for each of the three applications,
-with each deployment identified using the Kubernetes labels id=app1, id=app2,
-and id=app3.
-It also include a app1-service, which load-balances traffic to all pods with label id=app1.
+The file ``http-sw-app.yaml`` contains a `Kubernetes Deployment <https://kubernetes.io/docs/concepts/workloads/controllers/deployment/>`_ for each of the three services.
+Each deployment is identified using the Kubernetes labels (org=empire, class=deathstar), (org=empire, class=tiefighter),
+and (org=alliance, class=xwing).
+It also includes a deathstar-service, which load-balances traffic to all pods with label (org=empire, class=deathstar).
 
 .. parsed-literal::
 
-    $ kubectl create -f \ |SCM_WEB|\/examples/minikube/demo.yaml
-    service "app1-service" created
-    deployment "app1" created
-    pod "app2" created
-    pod "app3" created
+    $ kubectl create -f \ |SCM_WEB|\/examples/minikube/http-sw-app.yaml
+    service "deathstar" unchanged
+    deployment "deathstar" created
+    deployment "tiefighter" created
+    deployment "xwing" created
 
 
 Kubernetes will deploy the pods and service in the background.  Running
@@ -140,15 +140,15 @@ point the pod is ready.
 ::
 
     $ kubectl get pods,svc
-    NAME                       READY     STATUS    RESTARTS   AGE
-    po/app1-3720119688-1h7c5   1/1       Running   0          37s
-    po/app1-3720119688-jzqx2   1/1       Running   0          37s
-    po/app2                    1/1       Running   0          37s
-    po/app3                    1/1       Running   0          37s
+    NAME                             READY     STATUS    RESTARTS   AGE
+    po/deathstar-76995f4687-2mxb2    1/1       Running   0          1m
+    po/deathstar-76995f4687-xbgnl    1/1       Running   0          1m
+    po/tiefighter-68c6cb4b4b-rxcb2   1/1       Running   0          1m
+    po/xwing-cc65988f5-7cvn8         1/1       Running   0          1m
 
-    NAME               CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-    svc/app1-service   10.0.0.199   <none>        80/TCP    37s
-    svc/kubernetes     10.0.0.1     <none>        443/TCP   27m
+    NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+    svc/deathstar    ClusterIP   10.109.254.198   <none>        80/TCP    3h
+    svc/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP   3h
 
 Each pod will be represented in Cilium as an :ref:`endpoint`. We can invoke the
 ``cilium`` tool inside the Cilium pod to list them:
@@ -160,17 +160,21 @@ Each pod will be represented in Cilium as an :ref:`endpoint`. We can invoke the
     cilium-1c2cz   1/1       Running   0          26m
 
     $ kubectl -n kube-system exec cilium-1c2cz cilium endpoint list
-    ENDPOINT   POLICY (ingress)   POLICY (egress)   IDENTITY   LABELS (source:key[=value])               IPv6                 IPv4            STATUS   
-               ENFORCEMENT        ENFORCEMENT                                                                                                 
-    250        Disabled           Disabled          262        k8s:id=app2                               f00d::a0f:0:0:fa     10.15.132.130   ready   
-                                                               k8s:io.kubernetes.pod.namespace=default                                                
-    4698       Disabled           Disabled          264        k8s:id=app3                               f00d::a0f:0:0:125a   10.15.86.236    ready   
-                                                               k8s:io.kubernetes.pod.namespace=default                                                
-    28950      Disabled           Disabled          263        k8s:id=app1                               f00d::a0f:0:0:7116   10.15.51.177    ready   
-                                                               k8s:io.kubernetes.pod.namespace=default                                                
-    32138      Disabled           Disabled          263        k8s:id=app1                               f00d::a0f:0:0:7d8a   10.15.150.193   ready   
-                                                               k8s:io.kubernetes.pod.namespace=default 
-
+    ENDPOINT   POLICY (ingress)   POLICY (egress)   IDENTITY   LABELS (source:key[=value])                   IPv6                 IPv4            STATUS   
+               ENFORCEMENT        ENFORCEMENT                                                                                                     
+    7624       Disabled            Disabled          9919       k8s:class=deathstar                           f00d::a0f:0:0:1dc8   10.15.185.9     ready   
+                                                               k8s:io.kubernetes.pod.namespace=default                                                    
+                                                               k8s:org=empire                                                                             
+    10900      Disabled           Disabled          32353      k8s:class=xwing                               f00d::a0f:0:0:2a94   10.15.92.254    ready   
+                                                               k8s:io.kubernetes.pod.namespace=default                                                    
+                                                               k8s:org=alliance                                                                           
+    11010      Disabled            Disabled          9919       k8s:class=deathstar                           f00d::a0f:0:0:2b02   10.15.197.34    ready   
+                                                               k8s:io.kubernetes.pod.namespace=default                                                    
+                                                               k8s:org=empire                                                                                                                            
+    50240      Disabled           Disabled          12904      k8s:class=tiefighter                          f00d::a0f:0:0:c440   10.15.28.62     ready   
+                                                               k8s:io.kubernetes.pod.namespace=default                                                    
+                                                               k8s:org=empire 
+                                                           
 Both ingress and egress policy enforcement is still disabled on all of these pods because no network
 policy has been imported yet which select any of the pods.
 
@@ -179,12 +183,10 @@ Step 3: Apply an L3/L4 Policy
 =============================
 
 When using Cilium, endpoint IP addresses are irrelevant when defining security
-policies.  Instead, you can use the labels assigned to the VM to define
-security policies, which are automatically applied to any container with that
-label, no matter where or when it is run within a container cluster.
+policies.  Instead, you can use the labels assigned to the pods to define
+security policies. The policies will be applied to the right pods based on the labels irrespective of where or when it is running within the cluster. 
 
-We'll start with a simple example where we allow *app2* to reach *app1* on port 80, but
-disallow the same connectivity from *app3* to *app1*.
+We'll start with the basic policy restricting desthstar landing requests to only the ships that have label (org=empire). This will not allow any ships that don't have the org=empire label to even connect with the deathstar service. 
 This is a simple policy that filters only on IP protocol (network layer
 3) and TCP protocol (network layer 4), so it is often referred to as an L3/L4
 network security policy.
@@ -200,12 +202,11 @@ same TCP/UDP connection.
 
 We can achieve that with the following CiliumNetworkPolicy:
 
-.. literalinclude:: ../../examples/minikube/l3_l4_policy.yaml
+.. literalinclude:: ../../examples/minikube/sw_l3_l4_policy.yaml
 
 CiliumNetworkPolicies match on pod labels using "endpointSelector" to
 identify the sources and destinations to which the policy applies.
-The above policy whitelists traffic sent from *app2* pods to *app1* pods
-on TCP port 80.
+The above policy whitelists traffic sent from any pods with label (org=empire) to *deathstar* pods with label (org=empire, class=deathstar) on TCP port 80.
 
 To apply this L3/L4 policy, run:
 
@@ -230,7 +231,18 @@ label ``id=app1`` now have ingress policy enforcement enabled inline with the po
     32138      Enabled            Disabled          263        k8s:id=app1                               f00d::a0f:0:0:7d8a   10.15.150.193   ready
                                                                k8s:io.kubernetes.pod.namespace=default
 
-Step 4: Test L3/L4 Policy
+Step 4: Checking Current Access 
+===============================
+From the perspective of *deathstar* service providers only the empire ships should be able to request landing. But right now we don't have any rules enforced. So both *xwing* and *tiefighter* will be able to request landing. Lets test this:
+
+Arvinds-MacBook-Pro:v3 arvindsoni$ kubectl exec xwing-cc65988f5-7cvn8 -- curl -s -XPOST 10.109.254.198/v1/request-landing
+Ship landed
+Arvinds-MacBook-Pro:v3 arvindsoni$ kubectl exec  tiefighter-68c6cb4b4b-rxcb2  -- curl -s -XPOST 10.109.254.198/v1/request-landing
+Ship landed
+Arvinds-MacBook-Pro:v3 arvindsoni$ 
+
+
+Step 5: Test L3/L4 Policy
 =========================
 
 We can now verify the network policy that was imported.
@@ -300,7 +312,7 @@ You can observe the policy via ``kubectl``
     Events:                       <none>
 
 
-Step 5:  Apply and Test HTTP-aware L7 Policy
+Step 6:  Apply and Test HTTP-aware L7 Policy
 ============================================
 
 In the simple scenario above, it was sufficient to either give *app2* /
@@ -481,7 +493,7 @@ We hope you enjoyed the tutorial.  Feel free to play more with the setup, read
 the rest of the documentation, and reach out to us on the `Cilium
 Slack channel <https://cilium.herokuapp.com>`_ with any questions!
 
-Step 6:  Clean-Up
+Step 7:  Clean-Up
 =================
 
 You have now installed Cilium, deployed a demo app, and tested both
