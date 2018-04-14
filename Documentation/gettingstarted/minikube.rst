@@ -110,9 +110,15 @@ move forward with the ``READY`` status as 0.
 Step 2: Deploy the Demo Application
 ===================================
 
-Now that we have Cilium deployed and ``kube-dns`` operating correctly we can deploy our demo application.
+Now that we have Cilium deployed and ``kube-dns`` operating correctly we can
+deploy our demo application.
 
-In our Star Wars inspired, simple example, there are three microservices applications: *deathstar*, *tiefighter*, and *xwing*. *deathstar* runs an HTTP webservice on port 80, which is exposed as a `Kubernetes Service <https://kubernetes.io/docs/concepts/services-networking/service/>`_ that load-balances requests to *deathstar* across two pod replicas. The *deathstar* service provides landing services to the empire's spaceships so that they can request a landing port. *tiefighter* represents a landing-request client service on a typical empire ship and *xwing* represents a similar service on an alliance ship. They exist so that we can test different security policies for access control to *deathstar* landing services.
+In our simple example, there are three microservices applications: *app1*, *app2*, and *app3*.
+*App1* runs an HTTP webservice on port 80, which is exposed as a `Kubernetes Service <https://kubernetes.io/docs/concepts/services-networking/service/>`_
+that load-balances requests to *app1* to be across two pod replicas.
+
+*App2* and *app3* exist so that we can test different security policies for allowing applications
+to access *app1*.
 
 **Application Topology for Cilium and Kubernetes**
 
