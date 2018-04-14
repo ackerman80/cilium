@@ -178,8 +178,18 @@ Each pod will be represented in Cilium as an :ref:`endpoint`. We can invoke the
 Both ingress and egress policy enforcement is still disabled on all of these pods because no network
 policy has been imported yet which select any of the pods.
 
+Step 3: Checking Current Access 
+===============================
+From the perspective of *deathstar* service providers only the ships with label *org=empire* should be able to connect to the service and request landing. But right now we don't have any rules enforced. So both *xwing* and *tiefighter* will be able to request landing. Lets test this. __Replace the xwing and tiefighter podnames__ with the ones in your deployment
 
-Step 3: Apply an L3/L4 Policy
+.. parsed-literal::
+
+    $ kubectl exec xwing-cc65988f5-7cvn8 -- curl -s -XPOST 10.109.254.198/v1/request-landing
+    Ship landed
+    $ kubectl exec  tiefighter-68c6cb4b4b-rxcb2  -- curl -s -XPOST 10.109.254.198/v1/request-landing
+    Ship landed
+
+Step 4: Apply an L3/L4 Policy
 =============================
 
 When using Cilium, endpoint IP addresses are irrelevant when defining security
@@ -231,16 +241,6 @@ label ``id=app1`` now have ingress policy enforcement enabled inline with the po
     32138      Enabled            Disabled          263        k8s:id=app1                               f00d::a0f:0:0:7d8a   10.15.150.193   ready
                                                                k8s:io.kubernetes.pod.namespace=default
 
-Step 4: Checking Current Access 
-===============================
-From the perspective of *deathstar* service providers only the empire ships should be able to request landing. But right now we don't have any rules enforced. So both *xwing* and *tiefighter* will be able to request landing. Lets test this:
-
-.. parsed-literal::
-
-    $ kubectl exec xwing-cc65988f5-7cvn8 -- curl -s -XPOST 10.109.254.198/v1/request-landing
-    Ship landed
-    $ kubectl exec  tiefighter-68c6cb4b4b-rxcb2  -- curl -s -XPOST 10.109.254.198/v1/request-landing
-    Ship landed
 
 
 Step 5: Test L3/L4 Policy
