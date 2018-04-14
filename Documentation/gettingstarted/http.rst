@@ -116,7 +116,7 @@ In our Star Wars inspired, simple example, there are three microservices applica
 
 **Application Topology for Cilium and Kubernetes**
 
-.. image:: images/cilium_k8s_demo-150817.png
+.. image:: images/cilium_http_gsg.png
 
 The file ``http-sw-app.yaml`` contains a `Kubernetes Deployment <https://kubernetes.io/docs/concepts/workloads/controllers/deployment/>`_ for each of the three services.
 Each deployment is identified using the Kubernetes labels (org=empire, class=deathstar), (org=empire, class=tiefighter),
@@ -206,7 +206,7 @@ same TCP/UDP connection.
 
 **L4 Policy with Cilium and Kubernetes**
 
-.. image:: images/cilium_k8s_demo_l3-l4-policy-170817.png
+.. image:: images/cilium_http_l3_l4_gsg.png
 
 We can achieve that with the following CiliumNetworkPolicy:
 
@@ -334,7 +334,7 @@ While this is an illustrative example, unauthorized access such as above can hav
 
 **L7 Policy with Cilium and Kubernetes**
 
-.. image:: images/cilium_k8s_demo_l7-policy-230817.png
+.. image:: images/cilium_http_l3_l4_l7_gsg.png
 
 Cilium is capable of enforcing HTTP-layer (i.e., L7) policies to limit what
 URLs *tiefighter* is allowed to reach.  Here is an example policy file that
